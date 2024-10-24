@@ -21,9 +21,12 @@ public class MinioController {
     }
 
     @PostMapping
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadFile(
+            @RequestParam("code") String code,
+            @RequestParam("file") MultipartFile file
+    ) {
         try {
-            String fileName = minioService.uploadFile(file);
+            String fileName = minioService.uploadFile(code, file);
             return new ResponseEntity<>(fileName, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>("Error uploading file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -31,9 +34,12 @@ public class MinioController {
     }
 
     @GetMapping("/{fileName}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable String fileName) {
+    public ResponseEntity<byte[]> downloadFile(
+            @RequestParam("code") String code,
+            @PathVariable String fileName
+    ) {
         try {
-            InputStream fileStream = minioService.downloadFile(fileName);
+            InputStream fileStream = minioService.downloadFile(code, fileName);
             byte[] fileContent = fileStream.readAllBytes();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -45,9 +51,11 @@ public class MinioController {
     }
 
     @DeleteMapping("/{fileName}")
-    public ResponseEntity<String> deleteFile(@PathVariable String fileName) {
+    public ResponseEntity<String> deleteFile(
+            @RequestParam("code") String code,
+            @PathVariable String fileName) {
         try {
-            minioService.deleteFile(fileName);
+            minioService.deleteFile(code, fileName);
             return new ResponseEntity<>("File deleted successfully", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>("Error deleting file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
