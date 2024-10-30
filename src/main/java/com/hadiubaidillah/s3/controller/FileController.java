@@ -1,6 +1,13 @@
 package com.hadiubaidillah.s3.controller;
 
-import com.hadiubaidillah.s3.service.MinioService;
+import com.hadiubaidillah.s3.model.File;
+import com.hadiubaidillah.s3.service.FileService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -9,27 +16,34 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/files")
-public class MinioController {
+@Tag(name = "File API", description = "API for file upload and management")
+public class FileController {
 
-    private final MinioService minioService;
+    private final FileService fileService;
 
-    public MinioController(MinioService minioService) {
-        this.minioService = minioService;
+    public FileController(FileService fileService) {
+        this.fileService = fileService;
     }
 
-    @PostMapping
-    public ResponseEntity<String> uploadFile(
+    @Operation(
+            summary = "Upload a file",
+            description = "Uploads a file and returns the file metadata"
+    )
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadFile(
             @RequestParam("code") String code,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile multipartFile,
+            @RequestParam("id") Optional<String> id
     ) {
         try {
-            String fileName = minioService.uploadFile(code, file);
-            return new ResponseEntity<>(fileName, HttpStatus.OK);
+            File file = fileService.uploadFile(code, multipartFile, id);
+            return ResponseEntity.ok(file);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error uploading file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error uploading file: " + e.getMessage());
         }
     }
 
@@ -37,9 +51,10 @@ public class MinioController {
     public ResponseEntity<byte[]> downloadFile(
             @RequestParam("code") String code,
             @PathVariable String fileName
+
     ) {
         try {
-            InputStream fileStream = minioService.downloadFile(code, fileName);
+            InputStream fileStream = fileService.downloadFile(code, fileName);
             byte[] fileContent = fileStream.readAllBytes();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -55,7 +70,7 @@ public class MinioController {
             @RequestParam("code") String code,
             @PathVariable String fileName) {
         try {
-            minioService.deleteFile(code, fileName);
+            fileService.deleteFile(code, fileName);
             return new ResponseEntity<>("File deleted successfully", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>("Error deleting file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
